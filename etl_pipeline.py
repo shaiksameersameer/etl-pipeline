@@ -1,25 +1,22 @@
 import pandas as pd
 import boto3
 
-# Step 1: Clean Data
 def clean_data(df):
+    # Drop nulls
     df = df.dropna()
+    # Lowercase + strip spaces
     for col in df.select_dtypes(include=["object"]).columns:
-        df[col] = df[col].str.strip().str.lower()
+        df[col] = df[col].str.lower().str.strip()
     return df
 
-# Step 2: Transform Data
 def transform_data(df):
-    grouped = df.groupby("Branch", as_index=False)["Marks"].mean()
-    grouped.rename(columns={"Marks": "AvgMarks"}, inplace=True)
-    return grouped
+    # Group by branch and calculate average marks
+    return df.groupby("Branch")["Marks"].mean().reset_index()
 
-# Step 3: Save CSV
-def save_data(df, filename):
-    df.to_csv(filename, index=False)
-    print(f"✅ Saved {filename}")
+def save_data(df, output_file):
+    df.to_csv(output_file, index=False)
+    print(f"✅ Saved cleaned & transformed CSV to {output_file}")
 
-# Step 4: Upload to S3
 def upload_to_s3(file_name, bucket, object_name=None):
     s3 = boto3.client("s3")
     if object_name is None:
@@ -28,17 +25,17 @@ def upload_to_s3(file_name, bucket, object_name=None):
     print(f"☁️ Uploaded {file_name} to s3://{bucket}/{object_name}")
 
 if __name__ == "__main__":
-    # Input CSV
+    # Step 1: Read input CSV
     df = pd.read_csv("students.csv")
-    
-    # Clean
+
+    # Step 2: Clean
     df_clean = clean_data(df)
 
-    # Transform
+    # Step 3: Transform
     df_transformed = transform_data(df_clean)
 
-    # Save
+    # Step 4: Save
     save_data(df_transformed, "transformed.csv")
 
-    # Upload
-     upload_to_s3("transformed.csv", "sameer-data-2025")
+    # Step 5: Upload to S3
+    upload_to_s3("transformed.csv", "sameer-data-2025")
